@@ -1,0 +1,3 @@
+[workspace]
+members = ["wgpu-scene", "run-wasm"]
+resolver = "2"
