@@ -1,3 +1,3 @@
 fn main() {
-    wgpu_scene::run();
+    pollster::block_on(wgpu_scene_lib::run());
 }
