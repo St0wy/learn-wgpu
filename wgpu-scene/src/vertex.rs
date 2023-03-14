@@ -27,7 +27,6 @@ impl Vertex {
 }
 
 pub const VERTICES: &[Vertex] = &[
-    // Changed
     Vertex {
         position: [-0.0868241, 0.49240386, 0.0],
         tex_coords: [0.4131759, 0.00759614],
@@ -50,4 +49,4 @@ pub const VERTICES: &[Vertex] = &[
     }, // E
 ];
 
-pub const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
+pub const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4, /* padding */ 0];
