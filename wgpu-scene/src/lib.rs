@@ -1,8 +1,8 @@
 mod camera;
-mod state;
-mod texture;
 mod model;
 mod resources;
+mod state;
+mod texture;
 
 use state::State;
 use winit::{

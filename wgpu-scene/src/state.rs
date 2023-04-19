@@ -1,12 +1,13 @@
 use crate::camera::{Camera, CameraController, CameraUniform};
-use crate::model::Model;
 use crate::model::ModelVertex;
 use crate::model::Vertex;
+use crate::model::{DrawModel, Model};
 use crate::texture::Texture;
-use crate::{model, resources, Instance, InstanceRaw};
+use crate::{resources, Instance, InstanceRaw};
 use cgmath::prelude::*;
 use cgmath::Vector3;
 use log::info;
+use std::path::Path;
 use wgpu::util::DeviceExt;
 use winit::{event::*, window::Window};
 
@@ -25,7 +26,7 @@ pub struct State {
     size: winit::dpi::PhysicalSize<u32>,
     window: Window,
     render_pipeline: wgpu::RenderPipeline,
-    diffuse_bind_group: wgpu::BindGroup,
+    // diffuse_bind_group: wgpu::BindGroup,
     depth_texture: Texture,
     camera: Camera,
     camera_controller: CameraController,
@@ -98,11 +99,11 @@ impl State {
             view_formats: vec![],
         };
         surface.configure(&device, &configuration);
-
-        let diffuse_bytes = include_bytes!("happy-tree.png");
-
-        let diffuse_texture =
-            Texture::from_bytes(&device, &queue, diffuse_bytes, "happy-tree.png").unwrap();
+        //
+        // let diffuse_bytes = include_bytes!("happy-tree.png");
+        //
+        // let diffuse_texture =
+        //     Texture::from_bytes(&device, &queue, diffuse_bytes, "happy-tree.png").unwrap();
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -127,20 +128,20 @@ impl State {
                 label: Some("Texture bind group layout"),
             });
 
-        let diffuse_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &texture_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                },
-            ],
-            label: Some("Diffuse bind group"),
-        });
+        // let diffuse_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        //     layout: &texture_bind_group_layout,
+        //     entries: &[
+        //         wgpu::BindGroupEntry {
+        //             binding: 0,
+        //             resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
+        //         },
+        //         wgpu::BindGroupEntry {
+        //             binding: 1,
+        //             resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+        //         },
+        //     ],
+        //     label: Some("Diffuse bind group"),
+        // });
 
         let camera = Camera {
             eye: (0.0, 1.0, 2.0).into(),
@@ -236,10 +237,14 @@ impl State {
             multiview: None,
         });
 
-        let obj_model =
-            resources::load_model("cube.obj", &device, &queue, &texture_bind_group_layout)
-                .await
-                .unwrap();
+        let obj_model = resources::load_model(
+            Path::new("cube/cube.obj"),
+            &device,
+            &queue,
+            &texture_bind_group_layout,
+        )
+        .await
+        .unwrap();
 
         const SPACE_BETWEEN: f32 = 3.0;
         let instances = (0..NUM_INSTANCES_PER_ROW)
@@ -276,7 +281,7 @@ impl State {
             configuration,
             size,
             render_pipeline,
-            diffuse_bind_group,
+            // diffuse_bind_group,
             // diffuse_texture,
             depth_texture,
             camera,
@@ -304,11 +309,8 @@ impl State {
             self.configuration.width = new_size.width;
             self.configuration.height = new_size.height;
             self.surface.configure(&self.device, &self.configuration);
-            self.depth_texture = Texture::create_depth_texture(
-                &self.device,
-                &self.configuration,
-                "depth_texture",
-            );
+            self.depth_texture =
+                Texture::create_depth_texture(&self.device, &self.configuration, "depth_texture");
             self.camera.aspect_ratio = new_size.width as f32 / new_size.height as f32;
         }
     }
@@ -368,12 +370,11 @@ impl State {
 
             render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(0, &self.diffuse_bind_group, &[]);
-            render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
-
-            use model::DrawModel;
-            render_pass
-                .draw_mesh_instanced(&self.obj_model.meshes[0], 0..self.instances.len() as u32);
+            render_pass.draw_model_instanced(
+                &self.obj_model,
+                0..self.instances.len() as u32,
+                &self.camera_bind_group,
+            );
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));

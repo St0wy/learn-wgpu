@@ -16,6 +16,7 @@ bytemuck = { version = "1.13.1", features = ["derive"] }
 anyhow = "1.0"
 cgmath = "0.18.0"
 tobj = { version = "3.2.1", features = ["async"] }
+getrandom = { version = "0.2", features = ["js"] }
 
 [dependencies.image]
 version = "0.24"
