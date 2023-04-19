@@ -30,7 +30,7 @@ impl State {
     pub async fn new(window: Window) -> Self {
         let size = window.inner_size();
 
-        // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU§
+        // Backends::all => Vulkan + Metal + DX12 + Browser WebGPU
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             dx12_shader_compiler: Default::default(),
@@ -243,7 +243,7 @@ impl State {
             diffuse_bind_group,
             diffuse_texture,
             camera,
-            camera_controller: CameraController::new(0.2),
+            camera_controller: CameraController::new(0.02),
             camera_uniform,
             camera_buffer,
             camera_bind_group,

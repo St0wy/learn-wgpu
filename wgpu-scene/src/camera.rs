@@ -14,7 +14,7 @@ pub struct Camera {
 
 impl Camera {
     pub fn build_view_projection_matrix(&self) -> Matrix4<f32> {
-        let view = Matrix4::look_at_lh(self.eye, self.target, self.up);
+        let view = Matrix4::look_at_rh(self.eye, self.target, self.up);
         let projection = cgmath::perspective(
             cgmath::Deg(self.fov_y),
             self.aspect_ratio,
