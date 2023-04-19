@@ -2,6 +2,7 @@ use anyhow::*;
 use fs_extra::copy_items;
 use fs_extra::dir::CopyOptions;
 use std::env;
+use std::fs;
 use std::path::Path;
 
 fn main() -> Result<()> {
@@ -17,6 +18,7 @@ fn main() -> Result<()> {
         .join("wgpu-scene");
 
     println!("{:?}", out_path);
+    fs::create_dir_all(&out_path)?;
     let mut copy_options = CopyOptions::new();
     copy_options.overwrite = true;
     let paths_to_copy = vec!["../wgpu-scene/res/"];
