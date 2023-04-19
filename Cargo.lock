@@ -1577,7 +1577,10 @@ dependencies = [
 name = "run-wasm"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cargo-run-wasm",
+ "fs_extra",
+ "glob",
 ]
 
 [[package]]

@@ -33,13 +33,13 @@ pub async fn run() {
         use winit::dpi::PhysicalSize;
         use winit::platform::web::WindowExtWebSys;
 
-        let size = window.inner_size();
-        let width = size.width / 2;
-        let height = size.height / 2;
-        window.set_inner_size(PhysicalSize::new(width, height));
-
         web_sys::window()
-            .and_then(|win| win.document())
+            .and_then(|win| {
+                let width = win.inner_width().unwrap().as_f64()? as u32;
+                let height = win.inner_height().unwrap().as_f64()? as u32;
+                window.set_inner_size(PhysicalSize::new(width, height));
+                win.document()
+            })
             .and_then(|doc| {
                 let dst = doc.body()?;
                 let canvas = web_sys::Element::from(window.canvas());

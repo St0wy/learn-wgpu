@@ -47,6 +47,7 @@ pub struct Material {
     pub bind_group: wgpu::BindGroup,
 }
 
+#[derive(Debug)]
 pub struct Mesh {
     pub name: String,
     pub vertex_buffer: wgpu::Buffer,
@@ -121,6 +122,7 @@ where
         camera_bind_group: &'b BindGroup,
     ) {
         for mesh in &model.meshes {
+            dbg!(mesh);
             let material = &model.materials[mesh.material];
             self.draw_mesh_instanced(mesh, material, instances.clone(), camera_bind_group);
         }
