@@ -1,7 +1,8 @@
 mod camera;
 mod state;
 mod texture;
-mod vertex;
+mod model;
+mod resources;
 
 use state::State;
 use winit::{
