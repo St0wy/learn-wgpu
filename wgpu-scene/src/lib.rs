@@ -56,7 +56,7 @@ pub async fn run() {
             window_id,
             ref event,
         } if window_id == state.window().id() => {
-            if !state.input(event) {
+            if !state.window_input(event) {
                 match event {
                     WindowEvent::CloseRequested
                     | WindowEvent::KeyboardInput {
@@ -75,6 +75,9 @@ pub async fn run() {
                     _ => {}
                 }
             }
+        }
+        Event::DeviceEvent { ref event, .. } => {
+            _ = state.device_input(event);
         }
         Event::RedrawRequested(window_id) if window_id == state.window().id() => {
             state.update();

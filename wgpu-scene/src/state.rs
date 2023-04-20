@@ -12,11 +12,6 @@ use wgpu::util::DeviceExt;
 use winit::{event::*, window::Window};
 
 const NUM_INSTANCES_PER_ROW: u32 = 10;
-// const INSTANCE_DISPLACEMENT: Vector3<f32> = Vector3::new(
-//     NUM_INSTANCES_PER_ROW as f32 * 0.5,
-//     0.0,
-//     NUM_INSTANCES_PER_ROW as f32 * 0.5,
-// );
 
 pub struct State {
     surface: wgpu::Surface,
@@ -26,7 +21,6 @@ pub struct State {
     size: winit::dpi::PhysicalSize<u32>,
     window: Window,
     render_pipeline: wgpu::RenderPipeline,
-    // diffuse_bind_group: wgpu::BindGroup,
     depth_texture: Texture,
     camera: Camera,
     camera_controller: CameraController,
@@ -99,11 +93,6 @@ impl State {
             view_formats: vec![],
         };
         surface.configure(&device, &configuration);
-        //
-        // let diffuse_bytes = include_bytes!("happy-tree.png");
-        //
-        // let diffuse_texture =
-        //     Texture::from_bytes(&device, &queue, diffuse_bytes, "happy-tree.png").unwrap();
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -128,30 +117,10 @@ impl State {
                 label: Some("Texture bind group layout"),
             });
 
-        // let diffuse_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-        //     layout: &texture_bind_group_layout,
-        //     entries: &[
-        //         wgpu::BindGroupEntry {
-        //             binding: 0,
-        //             resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-        //         },
-        //         wgpu::BindGroupEntry {
-        //             binding: 1,
-        //             resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-        //         },
-        //     ],
-        //     label: Some("Diffuse bind group"),
-        // });
-
-        let camera = Camera {
-            eye: (0.0, 1.0, 2.0).into(),
-            target: (0.0, 0.0, 0.0).into(),
-            up: Vector3::unit_y(),
-            aspect_ratio: configuration.width as f32 / configuration.height as f32,
-            fov_y: 45.0,
-            z_near: 0.001,
-            z_far: 10000.0,
-        };
+        let camera = Camera::new(
+            (0.0, 1.0, 2.0).into(),
+            configuration.width as f32 / configuration.height as f32,
+        );
 
         let mut camera_uniform = CameraUniform::new();
         camera_uniform.update_view_proj(&camera);
@@ -285,7 +254,7 @@ impl State {
             // diffuse_texture,
             depth_texture,
             camera,
-            camera_controller: CameraController::new(0.02),
+            camera_controller: CameraController::new(0.02, 0.2),
             camera_uniform,
             camera_buffer,
             camera_bind_group,
@@ -315,8 +284,12 @@ impl State {
         }
     }
 
-    pub fn input(&mut self, event: &WindowEvent) -> bool {
-        self.camera_controller.process_events(event)
+    pub fn window_input(&mut self, event: &WindowEvent) -> bool {
+        self.camera_controller.process_window_events(event)
+    }
+
+    pub fn device_input(&mut self, event: &DeviceEvent) -> bool {
+        self.camera_controller.process_device_event(event)
     }
 
     pub fn update(&mut self) {
