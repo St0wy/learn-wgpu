@@ -1,6 +1,9 @@
 use cgmath::prelude::*;
 use cgmath::{Matrix4, Point3, Vector3};
-use winit::event::{DeviceEvent, ElementState, KeyboardInput, VirtualKeyCode, WindowEvent};
+use std::ops::Deref;
+use winit::event::{
+    DeviceEvent, ElementState, KeyboardInput, MouseScrollDelta, VirtualKeyCode, WindowEvent,
+};
 
 #[derive(Debug)]
 pub struct Camera {
@@ -59,8 +62,9 @@ impl Camera {
         self.update_vectors();
     }
 
-    pub fn set_fov_y(&mut self, fov_y: f32) {
-        self.fov_y = fov_y.clamp(1.0f32.to_radians(), 45.0f32.to_radians());
+    pub fn increment_fov_y(&mut self, fov_y: f32) {
+        self.fov_y += fov_y;
+        self.fov_y = self.fov_y.clamp(1.0, 120.0);
     }
 
     fn update_vectors(&mut self) {
@@ -111,6 +115,7 @@ pub struct CameraController {
     is_down_pressed: bool,
     is_up_pressed: bool,
     cursor_move: Option<(f32, f32)>,
+    scroll_move: Option<f32>,
 }
 
 impl CameraController {
@@ -125,6 +130,7 @@ impl CameraController {
             is_down_pressed: false,
             is_up_pressed: false,
             cursor_move: None,
+            scroll_move: None,
         }
     }
 
@@ -181,6 +187,16 @@ impl CameraController {
 
                 true
             }
+            DeviceEvent::MouseWheel { delta } => {
+                let delta = match delta {
+                    MouseScrollDelta::PixelDelta(val) => val.x as f32,
+                    MouseScrollDelta::LineDelta(_, val) => *val,
+                };
+
+                self.scroll_move = Some(-delta);
+
+                true
+            }
             _ => false,
         }
     }
@@ -208,6 +224,10 @@ impl CameraController {
             camera.increment_yaw(delta_yaw);
             camera.increment_pitch(delta_pitch);
             self.cursor_move = None;
+        }
+        if let Some(delta) = self.scroll_move {
+            camera.increment_fov_y(delta);
+            self.scroll_move = None;
         }
     }
 }

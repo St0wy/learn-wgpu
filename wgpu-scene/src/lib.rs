@@ -5,6 +5,7 @@ mod state;
 mod texture;
 
 use state::State;
+use winit::window::CursorGrabMode;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -50,6 +51,12 @@ pub async fn run() {
     }
 
     let mut state = State::new(window).await;
+    state
+        .window()
+        .set_cursor_grab(CursorGrabMode::Confined)
+        .or_else(|_| state.window().set_cursor_grab(CursorGrabMode::Locked))
+        .unwrap();
+    state.window().set_cursor_visible(false);
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -58,8 +65,12 @@ pub async fn run() {
         } if window_id == state.window().id() => {
             if !state.window_input(event) {
                 match event {
-                    WindowEvent::CloseRequested
-                    | WindowEvent::KeyboardInput {
+                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                    WindowEvent::Resized(physical_size) => state.resize(*physical_size),
+                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
+                        state.resize(**new_inner_size)
+                    }
+                    WindowEvent::KeyboardInput {
                         input:
                             KeyboardInput {
                                 state: ElementState::Pressed,
@@ -67,10 +78,26 @@ pub async fn run() {
                                 ..
                             },
                         ..
-                    } => *control_flow = ControlFlow::Exit,
-                    WindowEvent::Resized(physical_size) => state.resize(*physical_size),
-                    WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                        state.resize(**new_inner_size)
+                    } => {
+                        state
+                            .window()
+                            .set_cursor_grab(CursorGrabMode::None)
+                            .unwrap();
+                        state.window().set_cursor_visible(true);
+                    }
+                    WindowEvent::MouseInput {
+                        state: mouse_state,
+                        button,
+                        ..
+                    } => {
+                        if *mouse_state == ElementState::Pressed && *button == MouseButton::Left {
+                            state
+                                .window()
+                                .set_cursor_grab(CursorGrabMode::Confined)
+                                .or_else(|_| state.window().set_cursor_grab(CursorGrabMode::Locked))
+                                .unwrap();
+                            state.window().set_cursor_visible(false);
+                        }
                     }
                     _ => {}
                 }
