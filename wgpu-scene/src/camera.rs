@@ -1,6 +1,5 @@
 use cgmath::prelude::*;
 use cgmath::{Matrix4, Point3, Vector3};
-use std::ops::Deref;
 use winit::event::{
     DeviceEvent, ElementState, KeyboardInput, MouseScrollDelta, VirtualKeyCode, WindowEvent,
 };
