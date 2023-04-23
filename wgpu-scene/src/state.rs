@@ -139,7 +139,7 @@ impl State {
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
+                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
@@ -255,6 +255,11 @@ impl State {
                     } else {
                         cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
                     };
+
+                    // let rotation = cgmath::Quaternion::from_axis_angle(
+                    //     (0.0, 1.0, 0.0).into(),
+                    //     cgmath::Deg(180.0),
+                    // );
 
                     Instance { position, rotation }
                 })
