@@ -159,7 +159,7 @@ impl State {
             label: Some("Camera bind group"),
         });
 
-        let light_uniform = LightUniform::new([2.0, 10.0, 2.0], [1.0, 0.0, 0.0]);
+        let light_uniform = LightUniform::new([2.0, 2.0, 2.0], [1.0, 1.0, 1.0]);
 
         let light_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Light VB"),
