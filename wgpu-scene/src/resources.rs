@@ -65,11 +65,18 @@ pub async fn load_binary(file_name: &Path) -> anyhow::Result<Vec<u8>> {
 
 pub async fn load_texture(
     file_name: &Path,
+    is_normal_map: bool,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
 ) -> anyhow::Result<Texture> {
     let data = load_binary(file_name).await?;
-    Texture::from_bytes(device, queue, &data, file_name.to_str().unwrap())
+    Texture::from_bytes(
+        device,
+        queue,
+        &data,
+        file_name.to_str().unwrap(),
+        is_normal_map,
+    )
 }
 
 pub async fn load_model(
@@ -99,34 +106,25 @@ pub async fn load_model(
 
     let mut materials = Vec::new();
     for m in obj_materials? {
-        let texture_path = file_name.parent().unwrap().join(m.diffuse_texture);
-        let diffuse_texture = load_texture(&texture_path, device, queue).await?;
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&diffuse_texture.view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
-                },
-            ],
-            label: None,
-        });
+        let diffuse_texture_path = file_name.parent().unwrap().join(m.diffuse_texture);
+        let diffuse_texture = load_texture(&diffuse_texture_path, false, device, queue).await?;
 
-        materials.push(Material {
-            name: m.name,
+        let normal_texture_path = file_name.parent().unwrap().join(m.normal_texture);
+        let normal_texture = load_texture(&normal_texture_path, true, device, queue).await?;
+
+        materials.push(Material::new(
+            device,
+            &m.name,
             diffuse_texture,
-            bind_group,
-        })
+            normal_texture,
+            layout,
+        ))
     }
 
     let meshes = models
         .into_iter()
         .map(|m| {
-            let vertices = (0..m.mesh.positions.len() / 3)
+            let mut vertices = (0..m.mesh.positions.len() / 3)
                 .map(|i| ModelVertex {
                     position: [
                         m.mesh.positions[i * 3],
@@ -139,8 +137,64 @@ pub async fn load_model(
                         m.mesh.normals[i * 3 + 1],
                         m.mesh.normals[i * 3 + 2],
                     ],
+                    tangent: [0.0; 3],
+                    bitangent: [0.0; 3],
                 })
                 .collect::<Vec<_>>();
+
+            let indices = &m.mesh.indices;
+            let mut triangles_included = vec![0; vertices.len()];
+
+            for chunk in indices.chunks(3) {
+                let v0 = vertices[chunk[0] as usize];
+                let v1 = vertices[chunk[1] as usize];
+                let v2 = vertices[chunk[2] as usize];
+
+                let pos0: cgmath::Vector3<f32> = v0.position.into();
+                let pos1: cgmath::Vector3<f32> = v1.position.into();
+                let pos2: cgmath::Vector3<f32> = v2.position.into();
+
+                let uv0: cgmath::Vector2<f32> = v0.tex_coords.into();
+                let uv1: cgmath::Vector2<f32> = v1.tex_coords.into();
+                let uv2: cgmath::Vector2<f32> = v2.tex_coords.into();
+
+                let delta_pos1 = pos1 - pos0;
+                let delta_pos2 = pos2 - pos0;
+
+                let delta_uv1 = uv1 - uv0;
+                let delta_uv2 = uv2 - uv0;
+
+                let r = 1.0 / (delta_uv1.x * delta_uv2.y - delta_uv1.y * delta_uv2.x);
+                let tangent = (delta_pos1 * delta_uv2.y - delta_pos2 * delta_uv1.y) * r;
+                let bitangent = (delta_pos2 * delta_uv2.x - delta_pos1 * delta_uv2.x) * -r;
+
+                vertices[chunk[0] as usize].tangent =
+                    (tangent + cgmath::Vector3::from(vertices[chunk[0] as usize].tangent)).into();
+                vertices[chunk[1] as usize].tangent =
+                    (tangent + cgmath::Vector3::from(vertices[chunk[1] as usize].tangent)).into();
+                vertices[chunk[2] as usize].tangent =
+                    (tangent + cgmath::Vector3::from(vertices[chunk[2] as usize].tangent)).into();
+                vertices[chunk[0] as usize].bitangent = (bitangent
+                    + cgmath::Vector3::from(vertices[chunk[0] as usize].bitangent))
+                .into();
+                vertices[chunk[1] as usize].bitangent = (bitangent
+                    + cgmath::Vector3::from(vertices[chunk[1] as usize].bitangent))
+                .into();
+                vertices[chunk[2] as usize].bitangent = (bitangent
+                    + cgmath::Vector3::from(vertices[chunk[2] as usize].bitangent))
+                .into();
+
+                triangles_included[chunk[0] as usize] += 1;
+                triangles_included[chunk[1] as usize] += 1;
+                triangles_included[chunk[2] as usize] += 1;
+            }
+
+            for (i, n) in triangles_included.into_iter().enumerate() {
+                let denominator = 1.0 / n as f32;
+                let mut vertex = &mut vertices[i];
+                vertex.tangent = (cgmath::Vector3::from(vertex.tangent) * denominator).into();
+                vertex.bitangent = (cgmath::Vector3::from(vertex.bitangent) * denominator).into();
+            }
 
             let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some(&format!("{:?} Vertex Buffer", file_name)),
@@ -161,7 +215,7 @@ pub async fn load_model(
                 material: m.mesh.material_id.unwrap_or(0),
             }
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<Mesh>>();
 
     Ok(Model { meshes, materials })
 }
